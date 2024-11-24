@@ -1,0 +1,50 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35013.160
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "VRPlugin", "VRPlugin.shproj", "{819C4A3C-50C8-48A2-BF10-91F85B11C8A1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KK_VR", "KK_VR\KK_VR.csproj", "{45AED7E7-39D7-4477-882E-0BA77E65B291}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KKS_VR", "KKS_VR\KKS_VR.csproj", "{99E37BA4-40C1-43E6-83D2-8C6B4402F386}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VRGIN_OpenXR", "VRGIN_OpenXR\VRGIN_OpenXR.csproj", "{9C5D17A6-80E5-4661-AC62-98E451D3E0BC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VRGIN", "VRGIN\VRGIN.csproj", "{C967825E-1110-4F04-9055-393F4EDFE237}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{45AED7E7-39D7-4477-882E-0BA77E65B291}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45AED7E7-39D7-4477-882E-0BA77E65B291}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45AED7E7-39D7-4477-882E-0BA77E65B291}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45AED7E7-39D7-4477-882E-0BA77E65B291}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99E37BA4-40C1-43E6-83D2-8C6B4402F386}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99E37BA4-40C1-43E6-83D2-8C6B4402F386}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99E37BA4-40C1-43E6-83D2-8C6B4402F386}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99E37BA4-40C1-43E6-83D2-8C6B4402F386}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C5D17A6-80E5-4661-AC62-98E451D3E0BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C5D17A6-80E5-4661-AC62-98E451D3E0BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C5D17A6-80E5-4661-AC62-98E451D3E0BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C5D17A6-80E5-4661-AC62-98E451D3E0BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C967825E-1110-4F04-9055-393F4EDFE237}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C967825E-1110-4F04-9055-393F4EDFE237}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C967825E-1110-4F04-9055-393F4EDFE237}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C967825E-1110-4F04-9055-393F4EDFE237}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {271A0690-3435-470A-962D-34A5F39B54AE}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		KK_VR.projitems*{45aed7e7-39d7-4477-882e-0ba77e65b291}*SharedItemsImports = 4
+		KK_VR.projitems*{819c4a3c-50c8-48a2-bf10-91f85b11c8a1}*SharedItemsImports = 13
+		KK_VR.projitems*{99e37ba4-40c1-43e6-83d2-8c6b4402f386}*SharedItemsImports = 4
+	EndGlobalSection
+EndGlobal
