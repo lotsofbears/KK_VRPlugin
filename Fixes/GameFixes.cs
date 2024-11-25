@@ -85,32 +85,51 @@ namespace KK_VR.Fixes
     //}
 
 
-    // C
-    ///// <summary>
-    ///// The game includes an old version of GlobalFog, which assumes that the
-    ///// viewing frustum is always centered at the camera. This assumption is
-    ///// invalid in VR, so we fix it up here.
-    ///// </summary>
-    //[HarmonyPatch(typeof(GlobalFog))]
-    //public class GlobalFogPatches
-    //{
-    //    [HarmonyPatch(nameof(GlobalFog.CustomGraphicsBlit))]
-    //    [HarmonyPrefix]
-    //    private static void PreCustomGraphicsBlit(Material fxMaterial)
-    //    {
-    //        UnityEngine.Camera camera = UnityEngine.Camera.current;
-    //        camera.CalculateFrustumCorners(
-    //            new Rect(0, 0, 1, 1), camera.farClipPlane, camera.stereoActiveEye, _frustumBuffer);
-    //        Matrix4x4 corners = Matrix4x4.zero;
-    //        corners.SetRow(0, camera.transform.TransformDirection(_frustumBuffer[1]));
-    //        corners.SetRow(1, camera.transform.TransformDirection(_frustumBuffer[2]));
-    //        corners.SetRow(2, camera.transform.TransformDirection(_frustumBuffer[3]));
-    //        corners.SetRow(3, camera.transform.TransformDirection(_frustumBuffer[0]));
-    //        fxMaterial.SetMatrix("_FrustumCornersWS", corners);
-    //    }
+    /// <summary>
+    /// The game includes an old version of GlobalFog, which assumes that the
+    /// viewing frustum is always centered at the camera. This assumption is
+    /// invalid in VR, so we fix it up here.
+    /// </summary>
+    [HarmonyPatch(typeof(GlobalFog))]
+    public class GlobalFogPatches
+    {
+        [HarmonyPatch(nameof(GlobalFog.CustomGraphicsBlit))]
+        [HarmonyPrefix]
+        private static void PreCustomGraphicsBlit(Material fxMaterial)
+        {
+#if KK
 
-    //    static readonly Vector3[] _frustumBuffer = new Vector3[4];
-    //}
+            UnityEngine.Camera camera = UnityEngine.Camera.current;
+            camera.CalculateFrustumCorners(
+                new Rect(0, 0, 1, 1), camera.farClipPlane, camera.stereoActiveEye, _frustumBuffer);
+            // We need to transform these frustum corners to world space, but
+            // this transformation is different for each eye. Fortunately, here
+            // (inside OnRenderImage) Unity seems to have set up cameraToWorldMatrix
+            // correctly for the currently active eye. We just need to
+            // adjust it to cancel the Z-flipping.
+            var cam2world = camera.cameraToWorldMatrix * Matrix4x4.Scale(new Vector3(1f, 1f, -1f));
+            Matrix4x4 corners = Matrix4x4.zero;
+            corners.SetRow(0, cam2world.MultiplyVector(_frustumBuffer[1]));
+            corners.SetRow(1, cam2world.MultiplyVector(_frustumBuffer[2]));
+            corners.SetRow(2, cam2world.MultiplyVector(_frustumBuffer[3]));
+            corners.SetRow(3, cam2world.MultiplyVector(_frustumBuffer[0]));
+            fxMaterial.SetMatrix("_FrustumCornersWS", corners);
+#else
+
+            UnityEngine.Camera camera = UnityEngine.Camera.current;
+            camera.CalculateFrustumCorners(
+                new Rect(0, 0, 1, 1), camera.farClipPlane, camera.stereoActiveEye, _frustumBuffer);
+            Matrix4x4 corners = Matrix4x4.zero;
+            corners.SetRow(0, camera.transform.TransformDirection(_frustumBuffer[1]));
+            corners.SetRow(1, camera.transform.TransformDirection(_frustumBuffer[2]));
+            corners.SetRow(2, camera.transform.TransformDirection(_frustumBuffer[3]));
+            corners.SetRow(3, camera.transform.TransformDirection(_frustumBuffer[0]));
+            fxMaterial.SetMatrix("_FrustumCornersWS", corners);
+#endif
+        }
+
+        static readonly Vector3[] _frustumBuffer = new Vector3[4];
+    }
 
 
     // Not tagging VRCamera as MainCamera fixes all those issues.

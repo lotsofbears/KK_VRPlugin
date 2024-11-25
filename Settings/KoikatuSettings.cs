@@ -1,4 +1,5 @@
-﻿using System;
+﻿using KK_VR.Grasp;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
@@ -153,6 +154,32 @@ namespace KK_VR.Settings
         public bool IKShowDebug { get; set; }
         public float IKDefaultBendConstraint { get; set; }
         public bool ImperfectRotation { get; set; }
+        public bool MaintainLimbOrientation 
+        {
+            get => _maintainLimbOrientation;
+            set
+            {
+                _maintainLimbOrientation = value;
+                if (GraspHelper.Instance != null)
+                {
+                    GraspHelper.Instance.ChangeMaintainRelativePosition(value);
+                }
+            }
+        }
+        private bool _maintainLimbOrientation;
+        public float PushParent 
+        {
+            get => _pushParent;
+            set
+            {
+                _pushParent = value;
+                if (GraspHelper.Instance != null)
+                {
+                    GraspHelper.Instance.ChangeParentPush(value);
+                }
+            }
+        }
+        private float _pushParent;
         public enum HeadsetType
         {
             None,

@@ -75,7 +75,7 @@ namespace KK_VR.Handlers
             {
                 _bodyPart.chain.bendConstraint.weight = KoikatuInterpreter.settings.IKDefaultBendConstraint;
             }
-            if (_bodyPart.effector.maintainRelativePositionWeight != 1f)
+            if (_bodyPart.effector.maintainRelativePositionWeight != 1f && KoikatuInterpreter.settings.MaintainLimbOrientation)
             {
                 _translateEx = true;
                 //_translateOffset = _bodyPart.afterIK.position - transform.position;
@@ -163,7 +163,10 @@ namespace KK_VR.Handlers
                 {
                     if (_follow)
                     {
-                        TranslateOnFollow();
+                        if (KoikatuInterpreter.settings.MaintainLimbOrientation)
+                        {
+                            TranslateOnFollow();
+                        }
                         _anchor.SetPositionAndRotation(
                             _target.TransformPoint(_offsetPos),
                             _target.rotation * _offsetRot

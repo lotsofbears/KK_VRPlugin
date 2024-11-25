@@ -37,8 +37,7 @@ namespace KK_VR.Grasp
         private static Dictionary<ChaControl, List<BodyPart>> _bodyPartsDic;
         private static Dictionary<ChaControl, IKStuff> _auxDic = [];
         private readonly List<HandScroll> _handScrollList = [];
-        private bool _baseHold;
-        private readonly List<BaseHold> _baseHoldList = [];
+        internal BaseHold baseHold;
 
         // Switch from chara root to objAnim.
         private static readonly List<OrigOrient> _origOrientList = [];
@@ -355,33 +354,55 @@ namespace KK_VR.Grasp
         private void StartAnimChange(ChaControl chara, string stateName)
         {
             VRPlugin.Logger.LogDebug($"Helper:Grasp:StartAnimChange:{chara}");
-            for (var i = 6; i < 8; i++)
+            for (var i = 5; i < 7; i++)
             {
                 var bodyPart = _bodyPartsDic[chara][i];
                 if (bodyPart.state == State.Active)
                 {
                     //var parent = GetParent(bodyPart.name);
                     //VRPlugin.Logger.LogDebug($"AnimChange:Add:{bodyPart.name} -> {parent} -> {_bodyPartsDic[chara][(int)parent].origTarget}");
-                    if (!_animChangeDic.ContainsKey(chara))
-                    {
-                        _animChangeDic.Add(chara, stateName);
-                        _animChange = true;
-                    }
-                    bodyPart.anchor.parent = _bodyPartsDic[chara][(int)GetParent(bodyPart.name)].anchor;
+                    //if (!_animChangeDic.ContainsKey(chara))
+                    //{
+                    //    _animChangeDic.Add(chara, stateName);
+                    //    _animChange = true;
+                    //}
+                    bodyPart.guide.Attach(_bodyPartsDic[chara][i - 4].anchor); // anchor.parent = _bodyPartsDic[chara][(int)GetParent(bodyPart.name)].anchor;
+                    _animChange = true;
                 }
             }
         }
-        private PartName GetParent(PartName partName)
+        internal void ChangeMaintainRelativePosition(bool active)
         {
-            return partName switch
+            foreach (var bodyPartList in _bodyPartsDic.Values)
             {
-                PartName.HandL => PartName.ShoulderL,
-                PartName.HandR => PartName.ShoulderR,
-                PartName.FootL => PartName.ThighL,
-                PartName.FootR => PartName.ThighR,
-                _ => PartName.Spine
-            };
+                for (var i = 5; i <= 7; i++)
+                {
+                    bodyPartList[i].effector.maintainRelativePositionWeight = active ? 1f : 0f;
+                }
+            }
         }
+        internal void ChangeParentPush(float number)
+        {
+            foreach (var bodyPartList in _bodyPartsDic.Values)
+            {
+                for (var i = 5; i <= 7; i++)
+                {
+                    bodyPartList[i].chain.push = number == 0f ? 0f : 1f;
+                    bodyPartList[i].chain.pushParent = number;
+                }
+            }
+        }
+        //private PartName GetParent(PartName partName)
+        //{
+        //    return partName switch
+        //    {
+        //        PartName.HandL => PartName.ShoulderL,
+        //        PartName.HandR => PartName.ShoulderR,
+        //        PartName.FootL => PartName.ThighL,
+        //        PartName.FootR => PartName.ThighR,
+        //        _ => PartName.Spine
+        //    };
+        //}
         private void DoAnimChange()
         {
             foreach (var kv in _animChangeDic)
@@ -393,6 +414,28 @@ namespace KK_VR.Grasp
                     return;
                 }
             }
+        }
+        private void OnAnimChangeEnd(ChaControl chara)
+        {
+            VRPlugin.Logger.LogDebug($"Helper:Grasp:OnAnimChangeEnd");
+            for (var i = 5; i < 7; i++)
+            {
+                var bodyPart = _bodyPartsDic[chara][i];
+                if (bodyPart.state == State.Active)
+                {
+                    bodyPart.guide.Stay();
+                }
+            }
+            //foreach (var part in _partNamesToHold)
+            //{
+            //    var bodyPart = _bodyPartsDic[chara][(int)part];
+            //    //if (bodyPart.state == State.Active)
+            //    //{
+            //        bodyPart.anchor.parent = bodyPart.beforeIK;// SetParent(bodyPart.beforeIK, worldPositionStays: true);
+            //    //}
+            //}
+            _animChangeDic.Remove(chara);
+            _animChange = _animChangeDic.Count != 0;
         }
         internal void ScrollHand(PartName partName, ChaControl chara, bool increase)
         {
@@ -515,23 +558,9 @@ namespace KK_VR.Grasp
             ];
         private void Update()
         {
-            if (_baseHold) DoBaseHold();
+            baseHold?.Execute();
             if (_animChange) DoAnimChange();
             if (_handChange) DoHandChange();
-        }
-        private void OnAnimChangeEnd(ChaControl chara)
-        {
-            VRPlugin.Logger.LogDebug($"Helper:Grasp:OnAnimChangeEnd");
-            foreach (var part in _partNamesToHold)
-            {
-                var bodyPart = _bodyPartsDic[chara][(int)part];
-                if (bodyPart.state == State.Active)
-                {
-                    bodyPart.anchor.parent = bodyPart.beforeIK;// SetParent(bodyPart.beforeIK, worldPositionStays: true);
-                }
-            }
-            _animChangeDic.Remove(chara);
-            _animChange = _animChangeDic.Count != 0;
         }
 
         internal class BaseHold
@@ -544,49 +573,66 @@ namespace KK_VR.Grasp
                 offsetPos = _attachPoint.InverseTransformDirection(_objAnim.transform.position - _attachPoint.position);
                 offsetRot = Quaternion.Inverse(_attachPoint.rotation) * _objAnim.transform.rotation;
             }
-            internal BodyPart bodyPart;
-            internal Transform objAnim;
-            internal Transform attachPoint;
-            internal Quaternion offsetRot;
-            internal Vector3 offsetPos;
-            internal int scrollDir;
-            internal bool scrollInc;
-        }
-        internal BaseHold StartBaseHold(BodyPart bodyPart, Transform objAnim, Transform attachPoint)
-        {
-            _baseHold = true;
-            var baseHold = new BaseHold(bodyPart, objAnim, attachPoint);
-            _baseHoldList.Add(baseHold);
-            return baseHold;
-        }
-        private void DoBaseHold()
-        {
-            foreach (var hold in _baseHoldList)
+            private readonly BodyPart bodyPart;
+            private readonly Transform objAnim;
+            private readonly Transform attachPoint;
+            private Quaternion offsetRot;
+            private Vector3 offsetPos;
+            private int scrollDir;
+            private bool scrollInc;
+
+            private readonly Quaternion _left = Quaternion.Euler(0f, 1f, 0f);
+            private readonly Quaternion _right = Quaternion.Euler(0f, -1f, 0f);
+
+            internal void Execute()
             {
-                if (hold.scrollDir != 0)
+                if (scrollDir != 0)
                 {
-                    if (hold.scrollDir == 1)
+                    if (scrollDir == 1)
                     {
-                        DoBaseHoldVerticalScroll(hold, hold.scrollInc);
+                        DoBaseHoldVerticalScroll(scrollInc);
                     }
                     else
                     {
-                        DoBaseHoldHorizontalScroll(hold, hold.scrollInc);
+                        DoBaseHoldHorizontalScroll(scrollInc);
                     }
                 }
-                hold.objAnim.transform.SetPositionAndRotation(
-                    hold.attachPoint.position + hold.attachPoint.TransformDirection(hold.offsetPos),
-                    hold.attachPoint.rotation * hold.offsetRot
+                objAnim.transform.SetPositionAndRotation(
+                    attachPoint.position + attachPoint.TransformDirection(offsetPos),
+                    attachPoint.rotation * offsetRot
                     );
             }
-        }
-        internal void StopBaseHold(BaseHold baseHold)
-        {
-            _baseHoldList.Remove(baseHold);
-            if (_baseHoldList.Count == 0)
+
+            internal void StartBaseHoldScroll(int direction, bool increase)
             {
-                _baseHold = false;
+                scrollDir = direction;
+                scrollInc = increase;
             }
+
+            internal void StopBaseHoldScroll()
+            {
+                scrollDir = 0;
+            }
+
+            private void DoBaseHoldVerticalScroll(bool increase)
+            {
+                offsetPos += VR.Camera.Head.forward * (Time.deltaTime * (increase ? 10f : -10f));
+            }
+
+
+            private void DoBaseHoldHorizontalScroll(bool left)
+            {
+                offsetRot *= (left ? _left : _right);
+            }
+        }
+        internal void StartBaseHold(BodyPart bodyPart, Transform objAnim, Transform attachPoint)
+        {
+            baseHold = new BaseHold(bodyPart, objAnim, attachPoint);
+        }
+        internal void StopBaseHold()
+        {
+            baseHold = null;
+            
         }
         private void DoHandChange()
         {
@@ -594,29 +640,6 @@ namespace KK_VR.Grasp
             {
                 scroll.Scroll();
             }
-        }
-        internal void StartBaseHoldScroll(BaseHold baseHold, int direction, bool increase)
-        {
-            baseHold.scrollDir = direction;
-            baseHold.scrollInc = increase;
-        }
-
-        internal void StopBaseHoldScroll(BaseHold baseHold)
-        {
-            baseHold.scrollDir = 0;
-        }
-
-        private void DoBaseHoldVerticalScroll(BaseHold baseHold, bool increase)
-        {
-            baseHold.offsetPos += VR.Camera.Head.forward * (Time.deltaTime * (increase ? 10f : -10f));
-        }
-
-        private Quaternion _left = Quaternion.Euler(0f, 1f, 0f);
-        private Quaternion _right = Quaternion.Euler(0f, -1f, 0f);
-
-        private void DoBaseHoldHorizontalScroll(BaseHold baseHold, bool left)
-        {
-            baseHold.offsetRot *= (left ? _left : _right);
         }
 
         private void StopAnimChange()

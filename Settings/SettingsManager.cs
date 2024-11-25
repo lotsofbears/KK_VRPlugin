@@ -254,9 +254,20 @@ namespace KK_VR.Settings
                     new ConfigurationManagerAttributes { IsAdvanced = true }
                     )
                 );
+
+            var pushParent = config.Bind(SectionIK, "PushParent", 0.05f,
+                new ConfigDescription(
+                    "",
+                    new AcceptableValueRange<float>(0f, 1f),
+                    new ConfigurationManagerAttributes { ShowRangeAsPercent = false }));
+            Tie(pushParent, v => settings.PushParent = v);
+
+            var maintainLimbOrientation = config.Bind(SectionIK, "MaintainLimbOrientation", true, "");
+            Tie(maintainLimbOrientation, v => settings.MaintainLimbOrientation = v);
+
             Tie(showDebugIK, v => settings.IKShowDebug = v);
 
-            var followRotationDuringKiss = config.Bind(SectionH, "FollowRotationDuringKiss", false, "");
+            var followRotationDuringKiss = config.Bind(SectionH, "FollowRotationDuringKiss", true, "");
             Tie(followRotationDuringKiss, v => settings.FollowRotationDuringKiss = v);
 
             var hideAibuHandOnUserInput = config.Bind(SectionH, "HideAibuHandOnUserInput", KoikatuSettings.HandType.Both,
@@ -280,7 +291,7 @@ namespace KK_VR.Settings
             var ikHeadEffector = config.Bind(SectionIK, "HeadEffector", KoikatuSettings.HeadEffector.Disabled,
                 "HeadEffector is VERY finicky even on highly tailored settings." +
                 "Will make it or break it, if latter can be fixed manually." +
-                "'WhenRequired' setting will disable also disable effector on its reset");
+                "'WhenRequired' setting will disable effector on reset");
             Tie(ikHeadEffector, v => settings.IKHeadEffector = v);
 
             //void updateKeySets()

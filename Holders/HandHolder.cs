@@ -54,6 +54,7 @@ namespace KK_VR.Holders
         //private bool _lag;
         private ItemLag _itemLag;
         private bool _parent;
+        internal bool IsParent => _parent;
         private HandNoise _handNoise;
         internal HandNoise Noise => _handNoise;
         internal Controller Controller { get; private set; }
@@ -669,7 +670,7 @@ namespace KK_VR.Holders
         {
             foreach (var inst in _instances)
             {
-                if (inst.IsParent())
+                if (inst.FindChild())
                 {
                     inst.OnBecomingParent();
                     if (inst == this) return;
@@ -697,7 +698,7 @@ namespace KK_VR.Holders
             AddLag(10);
             _rigidBody.isKinematic = true;
         }
-        private bool IsParent()
+        private bool FindChild()
         {
             foreach (Transform child in _anchor.transform)
             {

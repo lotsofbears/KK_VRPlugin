@@ -654,7 +654,11 @@ namespace KK_VR.Interpreters
             if (press)
             {
                 _pressedButtons[index, 1] = true;
-                if (handler.IsBusy)
+                if (_hands[index].IsParent)
+                {
+                    _hands[index].Grasp.OnGripRelease();
+                }
+                else if (handler.IsBusy)
                 {
                     handler.UpdateTracker();
                     if (handCtrl.GetUseAreaItemActive() != -1 && handler.IsAibuItemPresent(out var touch))

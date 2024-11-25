@@ -43,7 +43,6 @@ namespace KK_VR.Grasp
             [PartName.ThighL, PartName.ThighR]
         ];
         // Clutch.
-        private GraspHelper.BaseHold _baseHold;
 
         private ChaControl _heldChara;
         private ChaControl _syncedChara;
@@ -74,7 +73,7 @@ namespace KK_VR.Grasp
         ];
 
         // Add held items too once implemented. All bodyParts have black list entries, dic is sufficient.
-        internal bool IsBusy => _blackListDic.Count != 0 || _baseHold != null;
+        internal bool IsBusy => _blackListDic.Count != 0 || _helper.baseHold != null;
         internal Dictionary<ChaControl, List<Tracker.Body>> GetBlacklistDic => _blackListDic;
         internal List<BodyPart> GetFullBodyPartList(ChaControl chara) => _bodyPartsDic[chara];
         internal enum State
@@ -152,9 +151,17 @@ namespace KK_VR.Grasp
                     //offsetEffector = anchor.gameObject.AddComponent<KK_VR.IK.OffsetEffector>();
                     if (_name == PartName.HandL || _name == PartName.HandR)
                     {
-                        effector.maintainRelativePositionWeight = 1f;
-                        chain.push = 1f;
-                        chain.pushParent = 0.05f;
+                        effector.maintainRelativePositionWeight = KoikatuInterpreter.settings.MaintainLimbOrientation ? 1f : 0f;
+                        if (KoikatuInterpreter.settings.PushParent != 0f)
+                        {
+                            chain.push = 1f;
+                            chain.pushParent = KoikatuInterpreter.settings.PushParent;
+                        }
+                        else
+                        {
+                            chain.push = 0f;
+                            chain.pushParent = 0f;
+                        }
                         chain.pushSmoothing = KK.RootMotion.FinalIK.FBIKChain.Smoothing.Cubic;
                         // To my surprise i couldn't make reach run in game or editor. 
                         // old one has reach working just fine with seemingly the same config.
@@ -443,7 +450,7 @@ namespace KK_VR.Grasp
                 // If there is no track, then expand limbs we are holding.
                 var heldBodyParts = _heldBodyParts.Concat(_tempHeldBodyParts);
                 var bodyPartsLimbs = heldBodyParts
-                    .Where(b => b.name != PartName.Spine && b.guide != null && b.guide.IsBusy);
+                    .Where(b => b.IsLimb() && b.guide.IsBusy);
                 if (bodyPartsLimbs.Any())
                 {
                     foreach (var bodyPart in bodyPartsLimbs)
@@ -462,7 +469,7 @@ namespace KK_VR.Grasp
             else if (_syncedChara != null)
             {
                 var bodyParts = _syncedBodyParts
-                    .Where(b => b.guide != null && b.guide.IsBusy);
+                    .Where(b => b.IsLimb() && b.guide.IsBusy);
                 if (bodyParts.Any())
                 {
                     foreach (var bodyPart in bodyParts)
@@ -520,7 +527,7 @@ namespace KK_VR.Grasp
         }
         private void HoldChara()
         {
-            _baseHold = _helper.StartBaseHold(_bodyPartsDic[_heldChara][0], _heldChara.objAnim.transform, _hand.Anchor);
+            _helper.StartBaseHold(_bodyPartsDic[_heldChara][0], _heldChara.objAnim.transform, _hand.Anchor);
         }
         internal void OnTriggerRelease()
         {
@@ -618,11 +625,10 @@ namespace KK_VR.Grasp
         internal void OnGripRelease()
         {
             //VRPlugin.Logger.LogDebug($"OnGripPress");
-            if (_baseHold != null)
+            if (_helper.baseHold != null)
             {
-                _helper.StopBaseHold(_baseHold);
+                _helper.StopBaseHold();
                 //SyncRoot(_baseHold.chara);
-                _baseHold = null;
                 StopGrasp();
             }
             else if (_heldBodyParts.Count > 0)
@@ -653,9 +659,9 @@ namespace KK_VR.Grasp
         internal bool OnBusyHorizontalScroll(bool increase)
         {
             VRPlugin.Logger.LogDebug($"OnHorizontalScroll:Busy:");
-            if (_baseHold != null)
+            if (_helper.baseHold != null)
             {
-                _helper.StartBaseHoldScroll(_baseHold, 2, increase);
+                _helper.baseHold.StartBaseHoldScroll(2, increase);
             }
             else if (!AttemptToScrollBodyPart(increase))
             {
@@ -680,9 +686,9 @@ namespace KK_VR.Grasp
         }
         internal void OnScrollRelease()
         {
-            if (_baseHold != null)
+            if (_helper.baseHold != null)
             {
-                _helper.StopBaseHoldScroll(_baseHold);
+                _helper.baseHold.StopBaseHoldScroll();
             }
             else
             {
@@ -696,9 +702,9 @@ namespace KK_VR.Grasp
             //    _animHelper.DoAnimChange(_heldChara);
             //}
             //else 
-            if (_baseHold != null)
+            if (_helper.baseHold != null)
             {
-                _helper.StartBaseHoldScroll(_baseHold, 1, increase);
+                _helper.baseHold.StartBaseHoldScroll(1, increase);
             }
             else
             {
@@ -711,7 +717,7 @@ namespace KK_VR.Grasp
             foreach (var bodyPart in bodyPartsList)
             {
                 // Attached bodyParts released one by one if they overstretch (not implemented), or by directly grabbing/resetting one.
-                if (bodyPart.state != State.Attached)
+                if (bodyPart.state != State.Default && bodyPart.state != State.Attached)
                 {
                     bodyPart.state = State.Active;
                     bodyPart.guide.Stay();
@@ -811,7 +817,7 @@ namespace KK_VR.Grasp
         private void Reset()
         {
             _hand.Handler.ClearTracker();
-            _baseHold = null;
+            _helper.StopBaseHold();
             _blackListDic.Clear();
             _heldBodyParts.Clear();
             _tempHeldBodyParts.Clear();
@@ -843,11 +849,11 @@ namespace KK_VR.Grasp
                 bodyPart.chain.bendConstraint.weight = KoikatuInterpreter.settings.IKDefaultBendConstraint;
             }
             bodyPart.state = State.Attached;
-            if (chara == null)
-            {
-                bodyPart.anchor.parent = attachPoint;
-            }
-            else
+            //if (chara == null)
+            //{
+            //    bodyPart.anchor.parent = attachPoint;
+            //}
+            //else
             {
                 //bodyPart.anchor.parent = null;
                 bodyPart.guide.Attach(attachPoint);

@@ -152,8 +152,8 @@ namespace VRGIN.Core
             VRLog.Info("------------------------------------");
             HMD = trackingSystem == "oculus" ? HMDType.Oculus : trackingSystem == "lighthouse" ? HMDType.Vive : HMDType.Other;
 
-            Application.targetFrameRate = 45;
-            Time.fixedDeltaTime = 1 / 45f;
+            Application.targetFrameRate = 90;
+            //Time.fixedDeltaTime = 1f / 90f;
             Application.runInBackground = true;
 
             GameObject.DontDestroyOnLoad(SteamVR_Render.instance.gameObject);
